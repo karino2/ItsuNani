@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.view.ActionMode
@@ -34,10 +36,13 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
+    val SELECT_FIELDS = arrayOf("_id", "BODY", "DATE")
+    val ORDER_SENTENCE = "DATE DESC, _id DESC"
+
     private fun queryCursor(): Cursor {
         return database.query(DatabaseHolder.ENTRY_TABLE_NAME) {
-            select("_id", "BODY", "DATE")
-            order("DATE DESC, _id DESC")
+            select(*SELECT_FIELDS)
+            order(ORDER_SENTENCE)
         }
     }
 
@@ -54,44 +59,77 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         recyclerView.adapter = entryAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-       entryAdapter.actionModeCallback = object : ActionMode.Callback {
-           override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-               val inflater = mode.menuInflater
-               inflater.inflate(R.menu.search_context_menu, menu)
-               entryAdapter.isSelecting = true
-               return true
-           }
-           override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-               when(item.itemId){
-                   R.id.delete_item-> {
+        setupActionMode()
+
+       searchEditText.apply {
+           setOnEditorActionListener { v, actionId, event ->
+               when(actionId) {
+                   EditorInfo.IME_ACTION_SEARCH -> {
                        launch {
                            val newCursor = async(Dispatchers.IO) {
-                               database.deleteEntries(entryAdapter.selectedIds)
-                               queryCursor()
+                               database.query(DatabaseHolder.ENTRY_TABLE_NAME) {
+                                   select(*SELECT_FIELDS)
+                                   val word = v.text.toString()
+                                   if(!word.isEmpty())
+                                        where("BODY like ?", "%"+v.text.toString()+"%")
+                                   order(ORDER_SENTENCE)
+                               }
                            }
                            entryAdapter.cursor = newCursor.await()
-                           // To cancel selection, we always call notifyDataSetChanged in onDestroy
-                           // entryAdapter.notifyDataSetChanged()
-                           entryAdapter.isSelecting = false
-                           mode.finish()
+                           entryAdapter.notifyDataSetChanged()
                        }
-
+                       true
                    }
+                   else -> false
                }
-               return false
            }
-
-
-           override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-               return false
-           }
-
-           override fun onDestroyActionMode(mode: ActionMode?) {
-               entryAdapter.isSelecting = false
-               entryAdapter.notifyDataSetChanged()
-           }
-
        }
+    }
+
+    val searchEditText by lazy {
+        findViewById<EditText>(R.id.editTextSearch)
+    }
+
+    private fun setupActionMode() {
+        entryAdapter.actionModeCallback = object : ActionMode.Callback {
+            override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+                val inflater = mode.menuInflater
+                inflater.inflate(R.menu.search_context_menu, menu)
+                entryAdapter.isSelecting = true
+                return true
+            }
+
+            override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+                when (item.itemId) {
+                    R.id.delete_item -> {
+                        launch {
+                            val newCursor = async(Dispatchers.IO) {
+                                database.deleteEntries(entryAdapter.selectedIds)
+                                queryCursor()
+                            }
+                            entryAdapter.cursor = newCursor.await()
+                            // To cancel selection, we always call notifyDataSetChanged in onDestroy
+                            // entryAdapter.notifyDataSetChanged()
+                            entryAdapter.isSelecting = false
+                            mode.finish()
+                        }
+
+                    }
+                }
+                return false
+            }
+
+
+            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                return false
+            }
+
+            override fun onDestroyActionMode(mode: ActionMode?) {
+                entryAdapter.isSelecting = false
+                entryAdapter.notifyDataSetChanged()
+            }
+
+        }
     }
 
     val recyclerView by lazy {

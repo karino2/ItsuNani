@@ -51,9 +51,9 @@ class DatabaseHolder(val context: Context) {
 
 class SelectBuilder(val tableName: String) {
     var distinct = false
-    var columns = mutableListOf<String>()
+    var columns = arrayOf<String>()
     var selection : String? = null
-    var selectionArgs = mutableListOf<String>()
+    var selectionArgs = arrayOf<String>()
     var groupBy : String? = null
     var having : String? = null
     var orderBy : String? = null
@@ -61,19 +61,22 @@ class SelectBuilder(val tableName: String) {
     var limit : String? = null
 
     fun select(vararg fields: String) {
-        columns.addAll(fields)
+        columns = arrayOf(*fields)
     }
 
     fun order(sentence: String) {
         orderBy = sentence
     }
 
-
+    fun where(whereSentence: String, vararg args: String) {
+        selection = whereSentence
+        selectionArgs = arrayOf(*args)
+    }
 
 
     fun exec(db: SQLiteDatabase) : Cursor {
-        val columnsArg = if(columns.isEmpty()) null else columns.toTypedArray()
-        val selectionArgsArg = if(selectionArgs.isEmpty()) null else selectionArgs.toTypedArray()
+        val columnsArg = if(columns.isEmpty()) null else columns
+        val selectionArgsArg = if(selectionArgs.isEmpty()) null else selectionArgs
 
         return db.query(distinct, tableName, columnsArg, selection, selectionArgsArg, groupBy, having, orderBy, limit)
     }
