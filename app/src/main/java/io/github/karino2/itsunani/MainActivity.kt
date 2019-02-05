@@ -8,6 +8,8 @@ import android.os.Handler
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import kotlin.coroutines.CoroutineContext
 import android.widget.ImageView
 import kotlinx.coroutines.*
@@ -29,6 +31,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        findViewById<EditText>(R.id.editTextEntry).apply {
+            setOnEditorActionListener { v, actionId, event ->
+                when(actionId) {
+                    EditorInfo.IME_ACTION_DONE -> {
+                       saveInputsAndFinish(v.text.toString())
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
     }
 
     val handler by lazy { Handler() }
@@ -89,10 +102,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
             override fun onResults(results: Bundle) {
                 notifyVoiceNotReady()
+                if(saving)
+                    return
                 val inputs = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)!!
                 if(inputs.isEmpty())
                     return
-                saveInputsAndFinish(inputs)
+                saveInputsAndFinish(inputs[0])
             }
         })
         recogn
@@ -105,10 +120,13 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         super.onDestroy()
     }
 
-    private fun saveInputsAndFinish(inputs: ArrayList<String>) {
+    var saving = false
+
+    private fun saveInputsAndFinish(input:String) {
+        saving = true
         launch {
             val executing = async(Dispatchers.IO) {
-                dbHolder.insertEntry(inputs[0])
+                dbHolder.insertEntry(input)
             }
             executing.await()
             finish()

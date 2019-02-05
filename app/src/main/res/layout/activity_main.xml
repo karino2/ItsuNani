@@ -13,16 +13,16 @@
             android:id="@+id/imageViewVoiceState" android:layout_marginTop="8dp"
             app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent"
             android:layout_marginStart="8dp" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
-            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/editText"/>
+            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/editTextEntry"/>
     <EditText
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:inputType="textPersonName"
-            android:text="Name"
             android:ems="10"
-            android:id="@+id/editText" android:layout_marginStart="8dp"
+            android:id="@+id/editTextEntry" android:layout_marginStart="8dp"
             app:layout_constraintStart_toStartOf="parent" android:layout_marginEnd="8dp"
             app:layout_constraintEnd_toEndOf="parent" android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toBottomOf="parent" android:imeOptions="actionDone"/>
+            app:layout_constraintBottom_toBottomOf="parent" android:imeOptions="actionDone"
+            android:hint="What's are you doing now?"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
