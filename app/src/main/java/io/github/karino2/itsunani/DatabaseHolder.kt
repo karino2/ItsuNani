@@ -92,3 +92,9 @@ fun DatabaseHolder.insertEntry(body: String) {
 
     this.database.insert(DatabaseHolder.ENTRY_TABLE_NAME, null, values)
 }
+
+fun DatabaseHolder.deleteEntries(ids: List<Long>) {
+    ids.forEach {
+        database.delete(DatabaseHolder.ENTRY_TABLE_NAME, "_id=?", arrayOf(it.toString()))
+    }
+}

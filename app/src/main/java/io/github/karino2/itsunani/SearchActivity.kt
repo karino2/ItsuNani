@@ -4,10 +4,10 @@ import android.database.Cursor
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.view.ActionMode
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.*
@@ -25,10 +25,7 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         super.onStart()
         launch {
             val query = async(Dispatchers.IO) {
-                database.query(DatabaseHolder.ENTRY_TABLE_NAME) {
-                    select("_id", "BODY", "DATE")
-                    order("DATE DESC, _id DESC")
-                }
+                queryCursor()
             }
             val curs = query.await()
             Log.d("ItsuNani", "count = ${curs.count}")
@@ -37,19 +34,64 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
+    private fun queryCursor(): Cursor {
+        return database.query(DatabaseHolder.ENTRY_TABLE_NAME) {
+            select("_id", "BODY", "DATE")
+            order("DATE DESC, _id DESC")
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         job.cancel()
     }
+    fun showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
+   override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
         recyclerView.adapter = entryAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
+
+       entryAdapter.actionModeCallback = object : ActionMode.Callback {
+           override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+               val inflater = mode.menuInflater
+               inflater.inflate(R.menu.search_context_menu, menu)
+               entryAdapter.isSelecting = true
+               return true
+           }
+           override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+               when(item.itemId){
+                   R.id.delete_item-> {
+                       launch {
+                           val newCursor = async(Dispatchers.IO) {
+                               database.deleteEntries(entryAdapter.selectedIds)
+                               queryCursor()
+                           }
+                           entryAdapter.cursor = newCursor.await()
+                           // To cancel selection, we always call notifyDataSetChanged in onDestroy
+                           // entryAdapter.notifyDataSetChanged()
+                           entryAdapter.isSelecting = false
+                           mode.finish()
+                       }
+
+                   }
+               }
+               return false
+           }
+
+
+           override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+               return false
+           }
+
+           override fun onDestroyActionMode(mode: ActionMode?) {
+               entryAdapter.isSelecting = false
+               entryAdapter.notifyDataSetChanged()
+           }
+
+       }
     }
 
     val recyclerView by lazy {
@@ -65,15 +107,54 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         database.close()
     }
 
-    class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        val dateTV = view.findViewById<TextView>(R.id.textViewDate)
-        val bodyTV = view.findViewById<TextView>(R.id.textViewBody)
+
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        var longClickListener = {_:View -> false}
+
+        val dateTV = itemView.findViewById<TextView>(R.id.textViewDate)
+        val bodyTV = itemView.findViewById<TextView>(R.id.textViewBody)
     }
 
     class EntryAdapter(var cursor: Cursor?) : RecyclerView.Adapter<ViewHolder>() {
+        var actionModeCallback : ActionMode.Callback? = null
+        var isSelecting = false
+
+        val selectedIds = arrayListOf<Long>()
+
+        fun toggleSelect(item: View) {
+            val id = item.tag as Long
+            if(item.isActivated) {
+                selectedIds.remove(id)
+                item.isActivated = false
+            } else {
+                selectedIds.add(id)
+                item.isActivated = true
+            }
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val inflater = LayoutInflater.from(parent.context)
-            return ViewHolder(inflater.inflate(R.layout.search_item, parent, false))
+            return ViewHolder(inflater.inflate(R.layout.search_item, parent, false)).apply {
+                itemView.setOnLongClickListener {view->
+                    actionModeCallback?.let {
+                        (view.context as AppCompatActivity).startSupportActionMode(it)
+                        toggleSelect(view)
+                        true
+                    } ?: false
+                }
+                itemView.setOnClickListener {
+                    if(isSelecting)
+                        toggleSelect(it)
+                }
+            }
+        }
+
+        override fun getItemId(position: Int): Long {
+            return cursor?.let {
+                it.moveToPosition(position)
+                // I assume _id is  columnIndex 0. It's defacto.
+                return it.getLong(0)
+            } ?: 0
         }
 
         override fun getItemCount(): Int {
@@ -89,6 +170,8 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
             curs.moveToPosition(position)
             holder.dateTV.text = sdf.format(Date(curs.getLong(2)))
             holder.bodyTV.text = curs.getString(1)
+            holder.itemView.tag = curs.getLong(0)
+            holder.itemView.isActivated = false
         }
 
     }
