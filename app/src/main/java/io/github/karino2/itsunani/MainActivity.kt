@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.EditText
 import kotlin.coroutines.CoroutineContext
 import android.widget.ImageView
+import android.widget.Toast
 import kotlinx.coroutines.*
 import java.util.ArrayList
 
@@ -70,6 +71,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     private fun notifyVoiceReady() {
         setResourceToVoiceState(R.drawable.voice_ready)
     }
+
+    fun showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
     private fun setResourceToVoiceState(rsid: Int) {
         val iv = findViewById<ImageView>(R.id.imageViewVoiceState)
@@ -129,6 +132,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     var saving = false
 
     private fun saveInputsAndFinish(input:String) {
+        showToast(input)
         saving = true
         launch {
             val executing = async(Dispatchers.IO) {
