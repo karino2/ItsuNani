@@ -1,6 +1,8 @@
 package io.github.karino2.itsunani
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.hardware.SensorManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -14,6 +16,8 @@ import android.widget.EditText
 import kotlin.coroutines.CoroutineContext
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.*
 import java.util.ArrayList
 
@@ -145,9 +149,26 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     val retryButton by lazy { findViewById<Button>(R.id.buttonRetry) }
 
+    val PERMISSION_REQUEST_RECORD_AUDIO_ID = 1
 
     fun startVoiceInput() {
-        recognizer.startListening(RecognizerIntent.getVoiceDetailsIntent(this))
-        retryButton.isEnabled = false
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+        {
+            recognizer.startListening(RecognizerIntent.getVoiceDetailsIntent(this))
+            retryButton.isEnabled = false
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO),PERMISSION_REQUEST_RECORD_AUDIO_ID)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        when(requestCode) {
+            PERMISSION_REQUEST_RECORD_AUDIO_ID -> {
+                if(grantResults.isNotEmpty() &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startVoiceInput()
+                }
+            }
+        }
     }
 }
