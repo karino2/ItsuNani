@@ -9,6 +9,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.view.inputmethod.EditorInfo
+import android.widget.Button
 import android.widget.EditText
 import kotlin.coroutines.CoroutineContext
 import android.widget.ImageView
@@ -42,6 +43,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                 }
             }
         }
+
+        retryButton.setOnClickListener { _ ->
+            startVoiceInput()
+        }
     }
 
     val handler by lazy { Handler() }
@@ -59,6 +64,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     private fun notifyVoiceNotReady() {
         setResourceToVoiceState(R.drawable.voice_not_ready)
+        retryButton.isEnabled = true
     }
 
     private fun notifyVoiceReady() {
@@ -133,8 +139,11 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
+    val retryButton by lazy { findViewById<Button>(R.id.buttonRetry) }
+
 
     fun startVoiceInput() {
         recognizer.startListening(RecognizerIntent.getVoiceDetailsIntent(this))
+        retryButton.isEnabled = false
     }
 }
