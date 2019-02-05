@@ -30,9 +30,7 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
                 queryCursor()
             }
             val curs = query.await()
-            Log.d("ItsuNani", "count = ${curs.count}")
-            entryAdapter.cursor = curs
-            entryAdapter.notifyDataSetChanged()
+            entryAdapter.swapCursor(curs)
         }
     }
 
@@ -75,8 +73,7 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
                                    order(ORDER_SENTENCE)
                                }
                            }
-                           entryAdapter.cursor = newCursor.await()
-                           entryAdapter.notifyDataSetChanged()
+                           entryAdapter.swapCursor(newCursor.await())
                        }
                        true
                    }
@@ -107,9 +104,7 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
                                 database.deleteEntries(entryAdapter.selectedIds)
                                 queryCursor()
                             }
-                            entryAdapter.cursor = newCursor.await()
-                            // To cancel selection, we always call notifyDataSetChanged in onDestroy
-                            // entryAdapter.notifyDataSetChanged()
+                            entryAdapter.swapCursor(newCursor.await())
                             entryAdapter.isSelecting = false
                             mode.finish()
                         }
@@ -136,13 +131,14 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         findViewById<RecyclerView>(R.id.recyclerView)
     }
 
-    val entryAdapter = EntryAdapter(null)
+    val entryAdapter = EntryAdapter()
 
     val database by lazy { DatabaseHolder(this) }
 
     override fun onDestroy() {
-        super.onDestroy()
+        entryAdapter.swapCursor(null)
         database.close()
+        super.onDestroy()
     }
 
 
@@ -153,11 +149,19 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         val bodyTV = itemView.findViewById<TextView>(R.id.textViewBody)
     }
 
-    class EntryAdapter(var cursor: Cursor?) : RecyclerView.Adapter<ViewHolder>() {
+    class EntryAdapter() : RecyclerView.Adapter<ViewHolder>() {
         var actionModeCallback : ActionMode.Callback? = null
         var isSelecting = false
+        private var cursor: Cursor? = null
 
         val selectedIds = arrayListOf<Long>()
+        fun swapCursor(newCursor: Cursor?) {
+            cursor?.let { it.close() }
+            cursor = newCursor
+            newCursor?.let {
+                notifyDataSetChanged()
+            }
+        }
 
         fun toggleSelect(item: View) {
             val id = item.tag as Long
