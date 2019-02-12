@@ -1,5 +1,7 @@
 package io.github.karino2.itsunani
 
+import android.content.Context
+import android.content.Intent
 import android.database.Cursor
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -131,7 +133,7 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         findViewById<RecyclerView>(R.id.recyclerView)
     }
 
-    val entryAdapter = EntryAdapter()
+    val entryAdapter = EntryAdapter(this)
 
     val database by lazy { DatabaseHolder(this) }
 
@@ -149,7 +151,7 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
         val bodyTV = itemView.findViewById<TextView>(R.id.textViewBody)
     }
 
-    class EntryAdapter() : RecyclerView.Adapter<ViewHolder>() {
+    class EntryAdapter(val context: Context) : RecyclerView.Adapter<ViewHolder>() {
         var actionModeCallback : ActionMode.Callback? = null
         var isSelecting = false
         private var cursor: Cursor? = null
@@ -187,8 +189,16 @@ class SearchActivity : AppCompatActivity(), CoroutineScope {
                 itemView.setOnClickListener {
                     if(isSelecting)
                         toggleSelect(it)
+                    else
+                        editItem(it.tag as Long)
                 }
             }
+        }
+
+        private fun editItem(id: Long) {
+            val intent = Intent(context, EditActivity::class.java)
+            intent.putExtra("ENTRY_ID", id)
+            context.startActivity(intent)
         }
 
         override fun getItemId(position: Int): Long {

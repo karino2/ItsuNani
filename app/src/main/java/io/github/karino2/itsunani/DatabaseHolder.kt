@@ -96,8 +96,31 @@ fun DatabaseHolder.insertEntry(body: String) {
     this.database.insert(DatabaseHolder.ENTRY_TABLE_NAME, null, values)
 }
 
+fun DatabaseHolder.updateEntry(id: Long, body: String) {
+    val (date, _) = getEntry(id)
+    val values = ContentValues()
+    values.put("BODY", body)
+    values.put("DATE", date)
+    database.update(DatabaseHolder.ENTRY_TABLE_NAME, values, "_id=?", arrayOf(id.toString()))
+}
+
 fun DatabaseHolder.deleteEntries(ids: List<Long>) {
     ids.forEach {
         database.delete(DatabaseHolder.ENTRY_TABLE_NAME, "_id=?", arrayOf(it.toString()))
+    }
+}
+
+inline fun <reified T> Cursor.withClose(body: Cursor.()->T) : T{
+    val res = body()
+    this.close()
+    return res
+}
+
+fun DatabaseHolder.getEntry(id: Long): Pair<Long, String> {
+    return query(DatabaseHolder.ENTRY_TABLE_NAME) {
+        where("_id=?", id.toString())
+    }.withClose{
+        moveToFirst()
+       Pair(this.getLong(2), this.getString(1))
     }
 }
