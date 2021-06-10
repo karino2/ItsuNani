@@ -3,6 +3,7 @@ package io.github.karino2.itsunani
 import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -14,6 +15,8 @@ import android.os.Handler
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.view.Menu
+import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
@@ -33,41 +36,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     companion object {
         const val PERMISSION_REQUEST_RECORD_AUDIO_ID = 1
         const val REQUEST_OPEN_FILE_ID = 2
-
-        const val LAST_URI_KEY = "last_uri_path"
-    }
-
-    val sharedPreferences: SharedPreferences by lazy {
-        getSharedPreferences("ITSU_NANI", MODE_PRIVATE)
     }
 
     val lastUri : Uri?
-    get()
-    {
-        sharedPreferences.getString(LAST_URI_KEY, null)?.let {
-            return Uri.parse(it)
-        }
-        return null
-    }
+    get() = Lines.lastUri(this)
 
-    fun writeLastUri(uri : Uri) = sharedPreferences
-        .edit()
-        .putString(LAST_URI_KEY, uri.toString())
-        .commit()
+    fun writeLastUri(uri : Uri) = Lines.writeLastUri(this, uri)
 
-    fun resetLastUri() = sharedPreferences
-            .edit()
-            .putString(LAST_URI_KEY, null)
-            .commit()
 
     lateinit var job: Job
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
-
-
-    val sensorManager by lazy {
-        getSystemService(Activity.SENSOR_SERVICE) as SensorManager
-    }
 
     fun showMessage(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
@@ -109,6 +88,21 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
 
         lastUri ?: return requestOpen()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId) {
+            R.id.menu_item_list -> {
+                Intent(this, ListActivity::class.java)
+                    .also { startActivity(it) }
+            }
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -237,7 +231,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    val retryButton by lazy { findViewById<Button>(R.id.buttonRetry) }
+    val retryButton by lazy { findViewById<Button>(R.id.buttonRetry)!! }
 
 
     fun startVoiceInput() {
