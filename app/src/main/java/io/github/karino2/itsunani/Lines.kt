@@ -27,7 +27,7 @@ class Lines(val srcLines: List<String>) {
             .commit()
 
         fun loadLines(context: Context): Lines {
-            val text = context.contentResolver.openFileDescriptor(lastUri(context), "r")!!.use { desc ->
+            val text = context.contentResolver.openFileDescriptor(lastUri(context)!!, "r")!!.use { desc ->
                 val fis = FileInputStream(desc.fileDescriptor)
                 fis.bufferedReader().use { it.readText() }
             }
@@ -35,7 +35,7 @@ class Lines(val srcLines: List<String>) {
         }
 
         fun saveLines(context: Context, lines: Lines) {
-            context.contentResolver.openOutputStream(lastUri(context), "wt").use {
+            context.contentResolver.openOutputStream(lastUri(context)!!, "wt").use {
                 BufferedWriter(OutputStreamWriter(it)).use { bw ->
                     lines.save(bw)
                 }
