@@ -46,7 +46,8 @@ class SetupActivity : AppCompatActivity() {
                 Intent(Intent.ACTION_OPEN_DOCUMENT)
                     .apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "text/*"
+                        // with text/*, I can't choose .md ...
+                        type = "*/*"
                     }
                     .also{
                         startActivityForResult(it, REQUEST_OPEN_FILE)
