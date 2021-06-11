@@ -7,4 +7,9 @@
             android:icon="@drawable/outline_list_24"
             android:title="@string/label_list"
             app:showAsAction="always" />
+    <item
+            android:id="@+id/menu_item_preferences"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="@string/label_preferences"
+            app:showAsAction="ifRoom" />
 </menu>

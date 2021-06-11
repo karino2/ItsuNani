@@ -23,6 +23,7 @@
         </activity>
         <activity android:name=".ListActivity" />
         <activity android:name=".EditActivity" />
+        <activity android:name=".SetupActivity" />
     </application>
 
 </manifest>

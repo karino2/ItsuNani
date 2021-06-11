@@ -1,13 +1,8 @@
 package io.github.karino2.itsunani
 
 import android.Manifest
-import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.hardware.SensorManager
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -20,51 +15,32 @@ import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
-import kotlin.coroutines.CoroutineContext
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.*
 import java.io.BufferedWriter
+import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
 import java.util.*
 
 
-class MainActivity : AppCompatActivity(), CoroutineScope {
+class MainActivity : AppCompatActivity() {
     companion object {
         const val PERMISSION_REQUEST_RECORD_AUDIO_ID = 1
-        const val REQUEST_OPEN_FILE_ID = 2
     }
 
     val lastUri : Uri?
     get() = Lines.lastUri(this)
 
-    fun writeLastUri(uri : Uri) = Lines.writeLastUri(this, uri)
-
-
-    lateinit var job: Job
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + job
-
     fun showMessage(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
-    fun requestOpen() {
-        showMessage("Choose markdown file to store")
-        try {
-            Intent(Intent.ACTION_OPEN_DOCUMENT)
-                .apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    // text/markdown seems not known mime-type.
-                    type = "*/*"
-                }
-                .also{
-                startActivityForResult(it, REQUEST_OPEN_FILE_ID)
-            }
-        } catch(e: ActivityNotFoundException) {
-            showMessage("No activity for open document!")
-        }
+    fun gotoSetup()
+    {
+        Intent(this, SetupActivity::class.java)
+            .also { startActivity(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,7 +63,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             startVoiceInput()
         }
 
-        lastUri ?: return requestOpen()
+        lastUri ?: return gotoSetup()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -100,40 +76,23 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             R.id.menu_item_list -> {
                 Intent(this, ListActivity::class.java)
                     .also { startActivity(it) }
+                return true
+            }
+            R.id.menu_item_preferences -> {
+                gotoSetup()
+                return true
             }
         }
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        when(requestCode) {
-            REQUEST_OPEN_FILE_ID-> {
-                if (resultCode == RESULT_OK) {
-                    data?.data?.also {
-                        contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                        writeLastUri(it)
-
-                    }
-                }
-                return
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
     val handler by lazy { Handler() }
 
     override fun onStart() {
-        job = Job()
         super.onStart()
         lastUri ?: return notifyVoiceNotReady()
 
         handler.postDelayed({ startVoiceInput() }, 200)
-    }
-
-    override fun onStop() {
-        super.onStop()
-        job.cancel()
     }
 
     private fun notifyVoiceNotReady() {
@@ -154,7 +113,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     }
 
     val recognizer by lazy {
-        val recogn = SpeechRecognizer.createSpeechRecognizer(this)
+        val recogn = SpeechRecognizer.createSpeechRecognizer(this)!!
         recogn.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 notifyVoiceReady()
@@ -184,8 +143,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
             override fun onResults(results: Bundle) {
                 notifyVoiceNotReady()
-                if(saving)
-                    return
                 val inputs = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)!!
                 if(inputs.isEmpty())
                     return
@@ -200,8 +157,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         super.onDestroy()
     }
 
-    var saving = false
-
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm")
 
     val now : String
@@ -210,11 +165,35 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         return sdf.format(Date())
     }
 
-    fun saveMessage(body: String) {
+    fun appendMessageWithWA(body: String) {
         val newline = "- $now $body\n"
         val uri = lastUri ?: return showMessage("No markdown path specified...")
+        appendLineWithWA(uri, newline)
+    }
+
+    private fun appendLineWithWA(uri: Uri, newline: String) {
         contentResolver.openOutputStream(uri, "wa").use {
-            BufferedWriter(OutputStreamWriter(it)).use { bw->
+            BufferedWriter(OutputStreamWriter(it)).use { bw ->
+                bw.write(newline)
+            }
+        }
+    }
+
+    fun appendMessageWithW(body: String) {
+        val newline = "- $now $body\n"
+        val uri = lastUri ?: return showMessage("No markdown path specified...")
+        appendLineWithW(uri, newline)
+    }
+
+    private fun appendLineWithW(uri: Uri, newline: String) {
+        val org = contentResolver.openFileDescriptor(uri, "r")!!.use { desc ->
+            val fis = FileInputStream(desc.fileDescriptor)
+            fis.bufferedReader().use { it.readText() }
+        }
+
+        contentResolver.openOutputStream(uri, "w").use {
+            BufferedWriter(OutputStreamWriter(it)).use { bw ->
+                bw.write(org)
                 bw.write(newline)
             }
         }
@@ -222,12 +201,20 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     private fun saveInputsAndFinish(input:String) {
         showToast(input)
-        saving = true
-        launch {
-            withContext(Dispatchers.IO) {
-                saveMessage(input)
-            }
+        try {
+            appendMessageWithWA(input)
             finish()
+        } catch(_: FileNotFoundException) {
+            // In google drive, mode wa is not supported and return FileNotFoundException.
+            // I can't distinguish file is really not found and wa is not supported, so always retry with w mode.
+            // (neither wt is supported in GoogleDrive...)
+            try {
+                appendMessageWithW(input)
+                finish()
+            } catch(e: FileNotFoundException) {
+                showMessage(getString(R.string.msg_file_not_found))
+                gotoSetup()
+            }
         }
     }
 
@@ -252,6 +239,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                     startVoiceInput()
                 }
             }
+            else ->  super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
     }
 }
