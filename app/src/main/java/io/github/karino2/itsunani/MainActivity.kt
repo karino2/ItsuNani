@@ -215,6 +215,11 @@ class MainActivity : AppCompatActivity() {
                 showMessage(getString(R.string.msg_file_not_found))
                 gotoSetup()
             }
+        } catch( _:  SecurityException) {
+            // For Google Drive, after device reboot, open uri cause SeurityException.
+            // I couldn't find any solution for this, so goto setup in this case too.
+            showMessage( "Can't open file...")
+            gotoSetup()
         }
     }
 
