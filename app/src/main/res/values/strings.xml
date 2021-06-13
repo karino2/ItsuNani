@@ -5,5 +5,6 @@
     <string name="label_new">New File</string>
     <string name="label_preferences">Preferences</string>
     <string name="msg_file_not_found">Write fail, please specify valid file.</string>
+    <string name="label_itsunani_watermark">What\'s are you doing right now?</string>
 
 </resources>

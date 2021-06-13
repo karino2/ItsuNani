@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">いつなに</string>
+    <string name="label_list">リスト</string>
+    <string name="label_open">既存のファイルを開く</string>
+    <string name="label_new">新規ファイルを開く</string>
+    <string name="label_preferences">設定</string>
+    <string name="msg_file_not_found">書き込みに失敗しました。書き込み可能なファイルを指定してください。</string>
+    <string name="label_itsunani_watermark">今何してる？</string>
+</resources>
