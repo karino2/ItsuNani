@@ -45,6 +45,11 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list)
+        supportActionBar?.let {
+           it.setDisplayShowHomeEnabled(true)
+           it.setIcon(R.mipmap.ic_launcher)
+           it.title = "  " + getString(R.string.app_name)
+        }
 
         recyclerView.adapter = entryAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)

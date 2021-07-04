@@ -26,6 +26,11 @@ class SetupActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setup)
+        supportActionBar?.let {
+            it.setDisplayShowHomeEnabled(true)
+            it.setIcon(R.mipmap.ic_launcher)
+            it.title = "  " + getString(R.string.app_name)
+        }
 
         findViewById<Button>(R.id.buttonNew).setOnClickListener { _ ->
             try {

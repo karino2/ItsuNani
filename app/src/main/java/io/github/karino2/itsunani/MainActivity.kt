@@ -45,6 +45,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        supportActionBar?.let {
+            it.setDisplayShowHomeEnabled(true)
+            it.setIcon(R.mipmap.ic_launcher)
+            it.title = "  " + getString(R.string.app_name)
+        }
+
         setContentView(R.layout.activity_main)
 
         findViewById<EditText>(R.id.editTextEntry).apply {
