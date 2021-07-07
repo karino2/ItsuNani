@@ -4,6 +4,15 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.WEB_SEARCH" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_LANGUAGE_DETAILS" />
+        </intent>
+    </queries>
+
     <application
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
