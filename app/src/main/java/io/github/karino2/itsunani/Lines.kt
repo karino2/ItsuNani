@@ -53,7 +53,7 @@ class Lines(val srcLines: List<String>) {
     val allLines: Sequence<String>
         get()
         {
-            val itsuNaniCopy = LineQueue().apply { addAll(itsuNaniLines.lines) }
+            val itsuNaniCopy = LineQueue().apply { addAll(itsuNaniLines.lines.map {(_, line)->line}) }
             val otherLinesCopy = LineQueue().apply { addAll(otherLines) }
             return sequence {
                 srcLines.forEachIndexed { index, s ->
@@ -90,36 +90,57 @@ class LineQueue {
 }
 
 class ItsuNaniLines(originals: List<String>) {
-    val lines : ArrayList<String> = ArrayList<String>().apply{ addAll( originals ) }
+    private var lastId = 0
+
+    val lines : ArrayList<Pair<Int, String>> = ArrayList<Pair<Int, String>>().apply{
+        originals.map {
+            Pair(lastId++, it)
+        }.also {
+            addAll( it )
+        }
+    }
 
     // fun createAdapter(context: Context) : ArrayAdapter<String> = ArrayAdapter(context, R.layout.search_item, _textList)
 
-    fun deleteLines( itsuNaniIndices: ArrayList<Int>)
+    fun deleteLines( lineIds: ArrayList<Int>)
     {
-        var delCount = 0
-        itsuNaniIndices.forEach { idx ->
-            lines.removeAt( idx - delCount )
-            delCount++
-        }
+        val idSet = mutableSetOf<Int>().apply{ addAll(lineIds) }
+        val newLines = lines.filter { (id, line) -> !idSet.contains(id) }
+        lines.clear()
+        lines.addAll(newLines)
     }
 
     // format is as following.
     // - 2021-05-17 14:32 BODY
     val dateTemplate = "- 2021-05-17 14:32"
 
-    fun at(pos: Int) : ItsuNaniLine {
-        val line = lines[pos]
-        val dt = line.substring(2, dateTemplate.length)
-        val body = line.substring(dateTemplate.length+1)
+    private fun split(line: String) = Pair(line.substring(2, dateTemplate.length), line.substring(dateTemplate.length+1))
 
-        return ItsuNaniLine(dt, body)
+
+    fun getById(id: Int) : ItsuNaniLine {
+        return rowLine2ItsuNaniLine(getRowLine(id))
     }
 
-    fun updateEntry(pos: Int, body: String) {
-        val oldLine = lines[pos]
+    fun at(pos: Int) : ItsuNaniLine {
+        return rowLine2ItsuNaniLine(lines[pos])
+    }
+
+    private fun rowLine2ItsuNaniLine(rowLine: Pair<Int, String>): ItsuNaniLine {
+        val (id, line) = rowLine
+        val (dt, body) = split(line)
+
+        return ItsuNaniLine(id, dt, body)
+    }
+
+    // fun getIndex(id: Int) = lines.indexOfFirst {(id2, _) -> id == id2 }
+    fun getRowLine(id: Int) = lines.find { (id2, _) -> id == id2}!!
+
+    fun updateEntry(id: Int, body: String) {
+        val (_, oldLine) = getRowLine(id)
         val newLine = oldLine.substring(0, dateTemplate.length+1) + body
-        lines.removeAt(pos)
-        lines.add(pos, newLine)
+        val newLines = lines.map { pair-> if(pair.first == id) Pair(id, newLine) else pair }
+        lines.clear()
+        lines.addAll(newLines)
     }
 
     val count: Int
@@ -127,4 +148,4 @@ class ItsuNaniLines(originals: List<String>) {
 
 }
 
-data class ItsuNaniLine(val date: String, val body: String)
+data class ItsuNaniLine(val id: Int, val date: String, val body: String)

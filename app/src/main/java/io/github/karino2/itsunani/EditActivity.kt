@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
-import java.text.SimpleDateFormat
 import java.util.*
 
 class EditActivity : AppCompatActivity() {
@@ -22,7 +21,7 @@ class EditActivity : AppCompatActivity() {
 
         intent?.let {
             entryId = intent.getIntExtra("ENTRY_ID", -1)
-            val (date, body) = lines.itsuNaniLines.at(entryId)
+            val (_, date, body) = lines.itsuNaniLines.getById(entryId)
             editText.setText(body)
             supportActionBar!!.title = date
         }

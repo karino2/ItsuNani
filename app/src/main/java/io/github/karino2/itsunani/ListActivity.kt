@@ -71,13 +71,16 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
                 when (item.itemId) {
                     R.id.delete_item -> {
                         launch {
-                            withContext(Dispatchers.IO) {
-                                lines?.let { ls->
-                                    ls.deleteLines(entryAdapter.selectedIds)
-                                    Lines.saveLines(this@ListActivity, ls)
+                            val selectedIds = entryAdapter.selectedIds
+                            if (selectedIds.isNotEmpty()) {
+                                withContext(Dispatchers.IO) {
+                                    lines?.let { ls->
+                                        ls.deleteLines(selectedIds)
+                                        Lines.saveLines(this@ListActivity, ls)
+                                    }
                                 }
+                                entryAdapter.swapData(lines?.itsuNaniLines)
                             }
-                            entryAdapter.swapData(lines?.itsuNaniLines)
                             entryAdapter.isSelecting = false
                             mode.finish()
                         }
@@ -162,7 +165,7 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
         }
 
         override fun getItemId(position: Int): Long {
-            return position.toLong()
+            return lines?.at(position)?.id?.toLong() ?: 0
         }
 
         override fun getItemCount(): Int {
@@ -176,7 +179,7 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
             val line = ls.at(position)
             holder.dateTV.text = line.date
             holder.bodyTV.text = line.body
-            holder.itemView.tag = position
+            holder.itemView.tag = line.id
             holder.itemView.isActivated = false
         }
 
