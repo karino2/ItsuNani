@@ -58,12 +58,20 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
 
     }
 
+    private var _mode: ActionMode?
+        get() = entryAdapter._mode
+        set(newMode) {
+            entryAdapter._mode = newMode
+        }
+
     private fun setupActionMode() {
         entryAdapter.actionModeCallback = object : ActionMode.Callback {
             override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+                _mode = mode
                 val inflater = mode.menuInflater
                 inflater.inflate(R.menu.list_context_menu, menu)
                 entryAdapter.isSelecting = true
+                entryAdapter.selectedIds.clear()
                 return true
             }
 
@@ -83,6 +91,7 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
                             }
                             entryAdapter.isSelecting = false
                             mode.finish()
+                            _mode = null
                         }
 
                     }
@@ -92,11 +101,15 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
 
 
             override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-                return false
+                entryAdapter.isSelecting = true
+                entryAdapter.selectedIds.clear()
+                return true
             }
 
             override fun onDestroyActionMode(mode: ActionMode?) {
                 entryAdapter.isSelecting = false
+                entryAdapter.selectedIds.clear()
+                _mode = null
                 entryAdapter.notifyDataSetChanged()
             }
 
@@ -116,6 +129,7 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
     }
 
     class EntryAdapter(val context: Context) : RecyclerView.Adapter<ViewHolder>() {
+        var _mode: ActionMode? = null
         var actionModeCallback : ActionMode.Callback? = null
         var isSelecting = false
         private var lines: ItsuNaniLines? = null
@@ -133,6 +147,11 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
             if(item.isActivated) {
                 selectedIds.remove(id)
                 item.isActivated = false
+                if (selectedIds.isEmpty()) {
+                    _mode?.let {
+                        it.finish()
+                    }
+                }
             } else {
                 selectedIds.add(id)
                 item.isActivated = true
@@ -144,8 +163,10 @@ class ListActivity : AppCompatActivity(), CoroutineScope {
             return ViewHolder(inflater.inflate(R.layout.list_item, parent, false)).apply {
                 itemView.setOnLongClickListener {view->
                     actionModeCallback?.let {
-                        (view.context as AppCompatActivity).startSupportActionMode(it)
-                        toggleSelect(view)
+                        if (!isSelecting) {
+                            (view.context as AppCompatActivity).startSupportActionMode(it)
+                            toggleSelect(view)
+                        }
                         true
                     } ?: false
                 }
