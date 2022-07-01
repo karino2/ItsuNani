@@ -1,3 +1,5 @@
+@file:Suppress("OverrideDeprecatedMigration")
+
 package io.github.karino2.itsunani
 
 import android.content.ActivityNotFoundException
