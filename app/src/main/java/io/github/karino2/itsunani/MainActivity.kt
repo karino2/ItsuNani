@@ -236,7 +236,7 @@ class MainActivity : AppCompatActivity() {
     fun startVoiceInput() {
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
         {
-            recognizer.startListening(RecognizerIntent.getVoiceDetailsIntent(this))
+            recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH))
             retryButton.isEnabled = false
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO),PERMISSION_REQUEST_RECORD_AUDIO_ID)
